@@ -126,6 +126,79 @@ app.delete("/project/:id", async (req, res) => {
     }
 });
 
+// Add this to your backend index.js
+
+app.get("/analytics", async (req, res) => {
+  try {
+    console.log("📊 Fetching analytics data...");
+
+    // 1. Total Projects
+    const totalProjects = await project.countDocuments();
+
+    // 2. Total Users
+    const totalUsers = await User.countDocuments();
+
+    // 3. Most Liked Project
+    const mostLikedProject = await Like.aggregate([
+      { $group: { _id: "$projectId", likeCount: { $sum: 1 } } },
+      { $sort: { likeCount: -1 } },
+      { $limit: 1 },
+      {
+        $lookup: {
+          from: "projects",
+          localField: "_id",
+          foreignField: "_id",
+          as: "projectDetails",
+        },
+      },
+    ]);
+
+    // 4. Most Rated Project
+    const mostRatedProject = await Rating.aggregate([
+      { $group: { _id: "$projectId", avgRating: { $avg: "$rating" }, count: { $sum: 1 } } },
+      { $sort: { avgRating: -1 } },
+      { $limit: 1 },
+      {
+        $lookup: {
+          from: "projects",
+          localField: "_id",
+          foreignField: "_id",
+          as: "projectDetails",
+        },
+      },
+    ]);
+
+    // 5. Total Comments
+    const totalComments = await Comment.countDocuments();
+
+    // 6. Total Likes
+    const totalLikes = await Like.countDocuments();
+
+    // 7. Total Ratings
+    const totalRatings = await Rating.countDocuments();
+
+    // 8. Total Favorites
+    const totalFavorites = await Favorite.countDocuments();
+
+    res.json({
+      success: true,
+      data: {
+        totalProjects,
+        totalUsers,
+        totalComments,
+        totalLikes,
+        totalRatings,
+        totalFavorites,
+        mostLikedProject: mostLikedProject.length > 0 ? mostLikedProject[0] : null,
+        mostRatedProject: mostRatedProject.length > 0 ? mostRatedProject[0] : null,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Analytics error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
