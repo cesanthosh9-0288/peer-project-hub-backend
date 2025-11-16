@@ -3,6 +3,11 @@ import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import project from "./models/project.js";
+import Comment from "./models/comment.js";
+import Like from "./models/like.js";
+import Rating from "./models/rating.js";
+import Favorite from "./models/favorite.js";
+import User from "./models/user.js";
 import commentRoutes from "./routes/comment.js";
 import favoriteRoutes from "./routes/favorite.js";
 import ratingRoutes from "./routes/rating.js";
@@ -126,8 +131,9 @@ app.delete("/project/:id", async (req, res) => {
     }
 });
 
-// Add this to your backend index.js
-
+/* ============================================================
+   📊 ANALYTICS  (GET /analytics)
+============================================================ */
 app.get("/analytics", async (req, res) => {
   try {
     console.log("📊 Fetching analytics data...");
@@ -136,7 +142,7 @@ app.get("/analytics", async (req, res) => {
     const totalProjects = await project.countDocuments();
 
     // 2. Total Users
-    const totalUsers = await User.countDocuments();
+    const totalUsers = await User.countDocuments().catch(() => 0);
 
     // 3. Most Liked Project
     const mostLikedProject = await Like.aggregate([
@@ -151,7 +157,7 @@ app.get("/analytics", async (req, res) => {
           as: "projectDetails",
         },
       },
-    ]);
+    ]).catch(() => []);
 
     // 4. Most Rated Project
     const mostRatedProject = await Rating.aggregate([
@@ -166,19 +172,21 @@ app.get("/analytics", async (req, res) => {
           as: "projectDetails",
         },
       },
-    ]);
+    ]).catch(() => []);
 
     // 5. Total Comments
-    const totalComments = await Comment.countDocuments();
+    const totalComments = await Comment.countDocuments().catch(() => 0);
 
     // 6. Total Likes
-    const totalLikes = await Like.countDocuments();
+    const totalLikes = await Like.countDocuments().catch(() => 0);
 
     // 7. Total Ratings
-    const totalRatings = await Rating.countDocuments();
+    const totalRatings = await Rating.countDocuments().catch(() => 0);
 
     // 8. Total Favorites
-    const totalFavorites = await Favorite.countDocuments();
+    const totalFavorites = await Favorite.countDocuments().catch(() => 0);
+
+    console.log("✅ Analytics data fetched successfully");
 
     res.json({
       success: true,
