@@ -1,0 +1,133 @@
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import project from "./models/project.js";
+import commentRoutes from "./routes/comment.js";
+import favoriteRoutes from "./routes/favorite.js";
+import ratingRoutes from "./routes/rating.js";
+import userRoutes from "./routes/user.js";
+import likeRoutes from "./routes/like.js";
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+
+// CORS always to be given before any routes 
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Register all routes (USER ROUTES FIRST)
+app.use("/user", userRoutes);
+app.use("/comment", commentRoutes);
+app.use("/favorite", favoriteRoutes);
+app.use("/rating", ratingRoutes);
+app.use("/like", likeRoutes);
+
+// MongoDB Atlas Connection
+const mongoURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/peer-project-hub";
+
+mongoose.connect(mongoURI)
+    .then(() => console.log("✅ MongoDB Connected"))
+    .catch(err => console.log("❌ MongoDB Error:", err));
+
+// Setup credentials
+const username = "San"
+const password = "test1234"
+
+// POST /login
+app.post("/login", (req, res) => {
+    if (req.body.username === username &&
+        req.body.password === password) {
+        res.send(true)
+    }
+    else {
+        res.send(false)
+    }
+})
+
+/* ============================================================
+   1️⃣  ADD PROJECT  (POST /addproject)
+============================================================ */
+app.post("/addproject", async (req, res) => {
+    try {
+        const newProject = await project.create({
+            title: req.body.title,
+            description: req.body.description,
+            tags: req.body.tags,
+            link: req.body.link,
+            live: req.body.live,
+            authorName: req.body.authorName,
+        });
+        res.json({ success: true, data: newProject });
+    } catch (err) {
+        res.json({ success: false, data: err.message });
+    }
+});
+
+/* ============================================================
+   2️⃣  GET ALL PROJECTS  (GET /projects)
+============================================================ */
+app.get("/projects", async (req, res) => {
+    try {
+        const projects = await project.find();
+        res.json(projects);
+    } catch (err) {
+        res.status(500).send("Error fetching projects");
+    }
+});
+
+/* ============================================================
+   3️⃣  GET PROJECT BY ID  (GET /project/:id)
+   Needed for Editing Page
+============================================================ */
+app.get("/project/:id", async (req, res) => {
+    try {
+        const item = await project.findById(req.params.id);
+        res.json(item);
+    } catch (err) {
+        res.status(500).send("Error fetching project");
+    }
+});
+
+/* ============================================================
+   4️⃣  UPDATE PROJECT  (PUT /project/:id)
+============================================================ */
+app.put("/project/:id", async (req, res) => {
+    try {
+        const updatedProject = await project.findByIdAndUpdate(
+            req.params.id,
+            {
+                title: req.body.title,
+                description: req.body.description,
+                tags: req.body.tags,
+                link: req.body.link,
+                live: req.body.live,
+            },
+            { new: true } // return updated version
+        );
+        res.json({ success: true, data: updatedProject });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+/* ============================================================
+   5️⃣  DELETE PROJECT  (DELETE /project/:id)
+============================================================ */
+app.delete("/project/:id", async (req, res) => {
+    try {
+        await project.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Project deleted" });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+});
+
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Backend server successfully started on port ${PORT}`);
+});
