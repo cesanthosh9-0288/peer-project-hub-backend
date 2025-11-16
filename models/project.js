@@ -8,7 +8,7 @@ const ProjectSchema = new mongoose.Schema({
     live: String,
     userId: {
         type: String,
-        required: true,
+        required: "Anonymous",
     },
     authorName: {
         type: String,
